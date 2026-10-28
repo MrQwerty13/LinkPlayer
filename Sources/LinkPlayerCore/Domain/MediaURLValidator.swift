@@ -35,17 +35,29 @@ public struct MediaURLValidator: Sendable {
             return .failure(.notAURL(trimmed))
         }
 
-        guard let url = URL(string: trimmed), url.scheme != nil else {
+        // Parse the scheme manually ("scheme:") so we never depend on how a
+        // particular Foundation version tokenizes exotic inputs like `data:`.
+        guard let colon = trimmed.firstIndex(of: ":") else {
             return .failure(.notAURL(trimmed))
         }
-        guard let scheme = url.scheme?.lowercased() else {
+        let schemeCandidate = String(trimmed[trimmed.startIndex..<colon]).lowercased()
+        let isSchemeLike = !schemeCandidate.isEmpty
+            && schemeCandidate.allSatisfy { $0.isLetter || $0.isNumber || $0 == "+" || $0 == "-" || $0 == "." }
+            && schemeCandidate.first.map { $0.isLetter } == true
+        guard isSchemeLike else {
             return .failure(.notAURL(trimmed))
         }
         // file:, javascript:, data:, itms-apps: and any arbitrary custom scheme
         // are rejected: LinkPlayer plays network media only.
-        guard policy.allowedSchemes.contains(scheme) else {
-            return .failure(.unsupportedScheme(scheme))
+        guard policy.allowedSchemes.contains(schemeCandidate) else {
+            return .failure(.unsupportedScheme(schemeCandidate))
         }
+        // Only parse the URL once we know the scheme is one we support, so the
+        // error for unsupported schemes stays precise across Foundation versions.
+        guard let url = URL(string: trimmed) else {
+            return .failure(.notAURL(trimmed))
+        }
+        let scheme = schemeCandidate
         if scheme == "http" && !policy.allowsInsecureHTTP {
             return .failure(.httpNotAllowed)
         }

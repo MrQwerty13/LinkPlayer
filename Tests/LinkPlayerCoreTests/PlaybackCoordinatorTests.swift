@@ -12,17 +12,24 @@ final class MockResolver: URLResolving, @unchecked Sendable {
     }
     private let lock = NSLock()
     private var _behavior: Behavior
-    private(set) var resolveCallCount = 0
+    private var _resolveCallCount = 0
 
     init(behavior: Behavior) { self._behavior = behavior }
 
-    var behavior: Behavior {
-        get { lock.withLock { _behavior } }
-        set { lock.withLock { _behavior = newValue } }
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock(); defer { lock.unlock() }
+        return body()
     }
 
+    var behavior: Behavior {
+        get { withLock { _behavior } }
+        set { withLock { _behavior = newValue } }
+    }
+
+    var resolveCallCount: Int { withLock { _resolveCallCount } }
+
     func resolve(_ url: URL) async throws -> ResolvedResource {
-        lock.withLock { resolveCallCount += 1 }
+        withLock { _resolveCallCount += 1 }
         switch behavior {
         case .success(let ct, let final, let status):
             return ResolvedResource(finalURL: URL(string: final ?? url.absoluteString)!,
@@ -46,15 +53,21 @@ actor FakePlayer: PlayerControlling {
     var lastVolume: Float?
     var lastSeek: TimeInterval?
     var playShouldThrow: PlaybackError?
-    var onEngineFailure: (@Sendable (PlaybackError) -> Void)?
+    private var failures: [@Sendable (PlaybackError) -> Void] = []
 
-    func play(url: URL) async throws {
+    /// Lets tests simulate an engine-level failure for the current session.
+    func emitEngineFailure(_ error: PlaybackError) {
+        for f in failures { f(error) }
+    }
+
+    func play(url: URL, onFailure: @escaping @Sendable (PlaybackError) -> Void) async throws {
         if let playShouldThrow { throw playShouldThrow }
+        failures = [onFailure] // a new item replaces the previous session's callback
         playedURLs.append(url)
     }
     func pause() async { pauseCount += 1 }
     func resume() async { resumeCount += 1 }
-    func stop() async { stopCount += 1 }
+    func stop() async { stopCount += 1; failures.removeAll() }
     func seek(to seconds: TimeInterval) async { lastSeek = seconds }
     func setVolume(_ volume: Float) async { lastVolume = volume }
 }
@@ -288,5 +301,37 @@ final class PlaybackCoordinatorTests: XCTestCase {
         _ = try await waitPhase(sut) { if case .playing = $0 { return true }; return false }
         let recorded = await recorder.recorded
         XCTAssertTrue(recorded.isEmpty)
+    }
+
+    // MARK: Engine-level failures
+
+    func testEngineFailureAfterStartMovesToFailedPhase() async throws {
+        let resolver = MockResolver(behavior: .success(contentType: "video/mp4", finalURLString: nil, status: 200))
+        let player = FakePlayer()
+        let sut = makeCoordinator(resolver: resolver, player: player)
+        await sut.open(rawText: "https://example.com/broken.mp4")
+        _ = try await waitPhase(sut) { if case .playing = $0 { return true }; return false }
+
+        await player.emitEngineFailure(.decodingFailed("The media could not be decoded."))
+        let phase = try await waitPhase(sut) { if case .failed = $0 { return true }; return false }
+        guard case .failed(let e) = phase else { return XCTFail("expected failed") }
+        XCTAssertEqual(e, .decodingFailed("The media could not be decoded."))
+    }
+
+    func testStaleEngineFailureIsIgnoredAfterStop() async throws {
+        let resolver = MockResolver(behavior: .success(contentType: "video/mp4", finalURLString: nil, status: 200))
+        let player = FakePlayer()
+        let sut = makeCoordinator(resolver: resolver, player: player)
+        await sut.open(rawText: "https://example.com/m.mp4")
+        _ = try await waitPhase(sut) { if case .playing = $0 { return true }; return false }
+
+        await sut.stop()
+        _ = try await waitPhase(sut) { $0 == .stopped }
+
+        // A late callback from the stopped session must not resurrect an error.
+        await player.emitEngineFailure(.decodingFailed("late"))
+        try await Task.sleep(nanoseconds: 150_000_000)
+        let phase = await sut.phase
+        XCTAssertEqual(phase, .stopped)
     }
 }
