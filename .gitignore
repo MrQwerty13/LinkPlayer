@@ -2,3 +2,20 @@
 .DS_Store
 *.swp
 *.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build artefacts
+build/obj/
+dist/
+work/
+src/linkplayer/resources/ffmpeg
