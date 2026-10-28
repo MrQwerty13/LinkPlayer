@@ -8,8 +8,8 @@ struct ContentView: View {
     @EnvironmentObject private var playerVM: PlayerViewModel
     @EnvironmentObject private var historyVM: HistoryModel
     @EnvironmentObject private var settingsVM: SettingsModel
+    @EnvironmentObject private var router: UIRouter
 
-    @State private var showHistory = false
     @FocusState private var urlFieldFocused: Bool
 
     var body: some View {
@@ -26,7 +26,7 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button {
-                    showHistory.toggle()
+                    router.showHistory.toggle()
                 } label: {
                     Label("History", systemImage: "clock.arrow.circlepath")
                 }
@@ -34,7 +34,7 @@ struct ContentView: View {
                 .keyboardShortcut("y", modifiers: .command)
             }
         }
-        .sheet(isPresented: $showHistory) {
+        .sheet(isPresented: $router.showHistory) {
             HistoryView()
         }
         .onAppear {
@@ -56,9 +56,6 @@ struct ContentView: View {
                 .focused($urlFieldFocused)
                 .onSubmit { playerVM.openCurrentInput() }
                 .accessibilityLabel("Media URL")
-                #if os(macOS)
-                .pasteboard(pasting: $playerVM.urlText)
-                #endif
 
             Button("Paste") {
                 if let string = NSPasteboard.general.string(forType: .string) {
@@ -92,9 +89,9 @@ struct ContentView: View {
     @ViewBuilder
     private var playerArea: some View {
         switch playerVM.phase {
-        case .idle, .stopped, .validating where playerVM.avPlayer.currentItem == nil:
+        case .idle, .stopped, .validating, .failed:
             emptyState
-        default:
+        case .loading, .playing, .paused:
             VideoSurface(player: playerVM.avPlayer, phase: playerVM.phase)
                 .overlay(alignment: .top) { loadingOverlay }
         }

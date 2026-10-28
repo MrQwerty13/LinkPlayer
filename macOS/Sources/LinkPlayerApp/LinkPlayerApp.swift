@@ -20,6 +20,8 @@ struct LinkPlayerApp: App {
     init() {
         let created = AppContainer()
         Self.sharedContainer = created
+        // Inject the concrete view models into the SwiftUI tree once, at app start.
+        ContentViewInjector.container = created
     }
 
     var body: some Scene {
@@ -28,6 +30,7 @@ struct LinkPlayerApp: App {
                 .environmentObject(Self.container.playerViewModel)
                 .environmentObject(Self.container.historyModel)
                 .environmentObject(Self.container.settingsModel)
+                .environmentObject(UIRouter.shared)
                 .frame(minWidth: 640, minHeight: 420)
         }
         .defaultSize(width: 860, height: 560)
@@ -41,6 +44,12 @@ struct LinkPlayerApp: App {
                 .environmentObject(Self.container.historyModel)
         }
     }
+}
+
+/// Keeps a reference so auxiliary scenes (Settings) can inject environment objects.
+@MainActor
+enum ContentViewInjector {
+    static var container: AppContainer?
 }
 
 // MARK: - Composition root
@@ -82,6 +91,26 @@ final class AppContainer: ObservableObject {
         appDelegate = AppDelegate()
         NSApplication.shared.delegate = appDelegate
         appDelegate.container = self
+
+        // Wire launch behaviors and phase observation once the graph exists.
+        PlayerLaunchHook.requestOpen = { [weak self] url in
+            self?.playerViewModel.open(rawText: url)
+        }
+        Task { await applyLaunchBehavior() }
+    }
+
+    /// Honors the persisted "On launch" setting — every option has a real effect.
+    func applyLaunchBehavior() async {
+        await playerViewModel.startObservingPhaseChanges()
+        let behavior = await settingsModel.launchBehaviorFromStore()
+        switch behavior {
+        case .showEmptyPlayer:
+            break
+        case .reopenLastItem:
+            await historyModel.reopenLast()
+        case .showHistory:
+            UIRouter.shared.showHistory = true
+        }
     }
 
     func shutdown() {
