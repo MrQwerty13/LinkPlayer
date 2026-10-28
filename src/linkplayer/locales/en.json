@@ -1,0 +1,76 @@
+{
+  "app": {
+    "title": "LinkPlayer",
+    "description": "Downloader for VK Video, YouTube and Rutube"
+  },
+  "download": {
+    "button": "Download",
+    "cancel": "Cancel",
+    "url_placeholder": "Paste a link to a video or playlist…",
+    "open_folder": "Open Folder",
+    "invalid_url": "Enter a valid video link (YouTube, VK Video or Rutube)",
+    "already_running": "A download is already running. Wait for it to finish or cancel it.",
+    "started": "Starting download…",
+    "finished": "Done: {name}",
+    "error": "Error: {message}",
+    "progress": "{current}/{total} · {speed}",
+    "cancelled": "Download cancelled"
+  },
+  "playlist": {
+    "question_title": "Playlist",
+    "question": "Playlist of {count} videos. What should be downloaded?",
+    "all": "Download all",
+    "first": "First only",
+    "cancel": "Cancel"
+  },
+  "log": {
+    "title": "Log",
+    "cleared": "Log cleared",
+    "no_tasks": "No active tasks"
+  },
+  "settings": {
+    "title": "Settings",
+    "save_dir": "Download folder",
+    "browse": "Browse…",
+    "language": "Interface language",
+    "language_ru": "Русский",
+    "language_en": "English",
+    "cookies_browser": "Cookies from browser",
+    "browser_none": "None",
+    "browser_safari": "Safari",
+    "browser_chrome": "Chrome",
+    "browser_firefox": "Firefox",
+    "browser_edge": "Edge",
+    "watch_clipboard": "Watch the clipboard",
+    "close_to_tray": "Hide to tray when the window is closed",
+    "ok": "Save",
+    "cancel": "Cancel",
+    "invalid_dir": "The folder does not exist or is not writable. Default folder selected."
+  },
+  "tray": {
+    "open": "Open",
+    "quit": "Quit",
+    "tooltip": "LinkPlayer video downloader"
+  },
+  "notifications": {
+    "download_finished": "Download finished",
+    "download_error": "Download error",
+    "clipboard_title": "Link in clipboard",
+    "clipboard_body": "Link from clipboard. Download it?"
+  },
+  "cookies": {
+    "keychain_error": "Could not read cookies from “{browser}”. Allow Keychain access in macOS and try again.",
+    "reading": "Reading cookies from “{browser}”…"
+  },
+  "errors": {
+    "generic": "Unknown error",
+    "network": "Network error. Check your internet connection.",
+    "unsupported": "Unsupported link. YouTube, VK Video and Rutube are available.",
+    "private": "The video is private or age-restricted. Enable browser cookies in settings."
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK"
+  }
+}

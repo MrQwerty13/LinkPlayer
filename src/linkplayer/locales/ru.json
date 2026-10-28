@@ -1,0 +1,76 @@
+{
+  "app": {
+    "title": "LinkPlayer",
+    "description": "Загрузчик видео с VK Video, YouTube и Rutube"
+  },
+  "download": {
+    "button": "Скачать",
+    "cancel": "Отмена",
+    "url_placeholder": "Вставьте ссылку на видео или плейлист…",
+    "open_folder": "Открыть папку",
+    "invalid_url": "Введите корректную ссылку на видео (YouTube, VK Video или Rutube)",
+    "already_running": "Загрузка уже выполняется. Дождитесь завершения или отмените её.",
+    "started": "Начинаю загрузку…",
+    "finished": "Готово: {name}",
+    "error": "Ошибка: {message}",
+    "progress": "{current}/{total} · {speed}",
+    "cancelled": "Загрузка отменена"
+  },
+  "playlist": {
+    "question_title": "Плейлист",
+    "question": "Плейлист из {count} видео. Что скачать?",
+    "all": "Скачать все",
+    "first": "Только первое",
+    "cancel": "Отмена"
+  },
+  "log": {
+    "title": "Журнал",
+    "cleared": "Журнал очищен",
+    "no_tasks": "Нет активных задач"
+  },
+  "settings": {
+    "title": "Настройки",
+    "save_dir": "Папка для загрузок",
+    "browse": "Обзор…",
+    "language": "Язык интерфейса",
+    "language_ru": "Русский",
+    "language_en": "English",
+    "cookies_browser": "Cookies из браузера",
+    "browser_none": "Нет",
+    "browser_safari": "Safari",
+    "browser_chrome": "Chrome",
+    "browser_firefox": "Firefox",
+    "browser_edge": "Edge",
+    "watch_clipboard": "Следить за буфером обмена",
+    "close_to_tray": "Скрывать в трей при закрытии окна",
+    "ok": "Сохранить",
+    "cancel": "Отмена",
+    "invalid_dir": "Папка не существует или недоступна для записи. Выбрана папка по умолчанию."
+  },
+  "tray": {
+    "open": "Открыть",
+    "quit": "Выход",
+    "tooltip": "LinkPlayer — загрузчик видео"
+  },
+  "notifications": {
+    "download_finished": "Загрузка завершена",
+    "download_error": "Ошибка загрузки",
+    "clipboard_title": "Ссылка из буфера",
+    "clipboard_body": "Ссылка из буфера. Скачать?"
+  },
+  "cookies": {
+    "keychain_error": "Не удалось прочитать cookies из браузера «{browser}». Разрешите доступ к связке ключей macOS и попробуйте снова.",
+    "reading": "Читаю cookies из браузера «{browser}»…"
+  },
+  "errors": {
+    "generic": "Неизвестная ошибка",
+    "network": "Ошибка сети. Проверьте подключение к интернету.",
+    "unsupported": "Ссылка не поддерживается. Доступны YouTube, VK Video и Rutube.",
+    "private": "Видео приватное или требует подтверждения возраста. Включите cookies браузера в настройках."
+  },
+  "common": {
+    "yes": "Да",
+    "no": "Нет",
+    "ok": "ОК"
+  }
+}
