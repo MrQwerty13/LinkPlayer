@@ -20,16 +20,17 @@ public enum PlaybackPhase: Equatable, Sendable {
 
 /// Abstraction over the concrete player engine (AVPlayer on macOS).
 /// Keeping it a protocol lets us unit-test the whole open→play flow with a fake.
-public protocol PlayerControlling: AnyObject, Sendable {
+/// Callbacks are passed per-call instead of stored properties so the protocol
+/// stays trivially conformable by actors.
+public protocol PlayerControlling: Sendable {
     /// Loads and starts playing the given item, fully replacing any current one.
-    func play(url: URL) async throws
+    /// `onFailure` is invoked if the engine fails during playback (decode errors etc.).
+    func play(url: URL, onFailure: @escaping @Sendable (PlaybackError) -> Void) async throws
     func pause() async
     func resume() async
     func stop() async
     func seek(to seconds: TimeInterval) async
     func setVolume(_ volume: Float) async
-    /// Engine-level failures reported after playback started (decode errors etc.)
-    var onEngineFailure: (@Sendable (PlaybackError) -> Void)? { get set }
 }
 
 /// History sink used by the coordinator.
@@ -52,6 +53,7 @@ public actor PlaybackCoordinator {
     private let settings: SettingsProviding
 
     private var currentTask: Task<Void, Never>?
+    private var taskGeneration: Int = 0
 
     public init(validator: MediaURLValidator,
                 resolver: URLResolving,
@@ -72,6 +74,7 @@ public actor PlaybackCoordinator {
     /// Entry point from the UI: raw text typed/pasted by the user.
     public func open(rawText: String) {
         currentTask?.cancel()
+        taskGeneration += 1
         let task = Task { [weak self] in
             guard let self else { return }
             await self.runOpen(rawText: rawText)
@@ -95,6 +98,7 @@ public actor PlaybackCoordinator {
     public func stop() async {
         currentTask?.cancel()
         currentTask = nil
+        taskGeneration += 1
         await player.stop()
         transition(to: .stopped)
     }
@@ -105,15 +109,6 @@ public actor PlaybackCoordinator {
 
     public func setVolume(_ volume: Float) async {
         await player.setVolume(volume)
-    }
-
-    /// Wires engine-level failures back into the phase machine.
-    public func installEngineCallbacks() async {
-        // `actor self` is implicitly Sendable; capture it strongly in the
-        // callback and hop back into the actor for state mutation.
-        player.onEngineFailure = { [self] error in
-            Task { await self.handleEngineFailure(error) }
-        }
     }
 
     // MARK: - Flow
@@ -141,8 +136,13 @@ public actor PlaybackCoordinator {
                                                       contentType: resolved.contentType)
             }
 
-            // 5. Hand off to the system player.
-            try await player.play(url: resolved.finalURL)
+            // 5. Hand off to the system player. Engine-level failures observed
+            // after start are funneled back into this state machine.
+            let generation = taskGeneration
+            try await player.play(url: resolved.finalURL) { [weak self] error in
+                guard let self else { return }
+                Task { await self.handleEngineFailure(error, generation: generation) }
+            }
             try Task.checkCancellation()
             transition(to: .playing(resolved.finalURL))
 
@@ -161,7 +161,10 @@ public actor PlaybackCoordinator {
         }
     }
 
-    private func handleEngineFailure(_ error: PlaybackError) {
+    private func handleEngineFailure(_ error: PlaybackError, generation: Int) {
+        // Ignore stale callbacks from a previous playback session.
+        guard generation == taskGeneration else { return }
+        guard case .playing = phase else { return }
         transition(to: .failed(error))
     }
 

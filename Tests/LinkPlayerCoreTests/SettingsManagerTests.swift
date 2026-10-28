@@ -75,7 +75,7 @@ final class SettingsManagerTests: XCTestCase {
         XCTAssertEqual(behavior, .showEmptyPlayer)
     }
 
-    func testCorruptFileFallsBackToDefaults() throws {
+    func testCorruptFileFallsBackToDefaults() async throws {
         let (store, dir) = try makeStore()
         defer { try? FileManager.default.removeItem(at: dir) }
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
