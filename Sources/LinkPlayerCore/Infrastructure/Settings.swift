@@ -1,7 +1,7 @@
 import Foundation
 
 /// Read-only view of user preferences, consumed by core services.
-public protocol SettingsProviding: Sendable {
+public protocol SettingsProviding: Actor {"
     var historyEnabled: Bool { get async }
     var allowsInsecureHTTP: Bool { get async }
     var autoPlayOnOpen: Bool { get async }

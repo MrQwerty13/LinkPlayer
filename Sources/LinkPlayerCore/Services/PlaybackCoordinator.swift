@@ -111,6 +111,12 @@ public actor PlaybackCoordinator {
         await player.setVolume(volume)
     }
 
+    /// Installs (or removes, with `nil`) the phase-change callback.
+    /// Used by the UI layer to mirror actor state into @Published properties.
+    public func setPhasePublisher(_ publisher: (@Sendable (PlaybackPhase) -> Void)?) {
+        onPhaseChange = publisher
+    }
+
     // MARK: - Flow
 
     private func runOpen(rawText: String) async {

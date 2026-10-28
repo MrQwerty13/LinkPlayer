@@ -1,6 +1,22 @@
 import SwiftUI
 import LinkPlayerCore
 
+// MARK: - Launch hook (decouples HistoryModel from PlayerViewModel)
+
+/// Tiny indirection used by launch-time behaviors ("Reopen the last video")
+/// so the history model doesn't need a reference to the player view model.
+@MainActor
+enum PlayerLaunchHook {
+    static var requestOpen: (String) -> Void = { _ in }
+}
+
+/// Shared UI routing state (e.g. "Show history" launch behavior opens the sheet).
+@MainActor
+final class UIRouter: ObservableObject {
+    static let shared = UIRouter()
+    @Published var showHistory = false
+}
+
 // MARK: - HistoryModel
 
 @MainActor
@@ -12,6 +28,13 @@ final class HistoryModel: ObservableObject {
     init(manager: HistoryManager) {
         self.manager = manager
         Task { await reload() }
+    }
+
+    /// Reopen the last played resource (launch behavior "Reopen the last video").
+    func reopenLast() async {
+        await reload()
+        guard let last = entries.first?.url else { return }
+        PlayerLaunchHook.requestOpen(last)
     }
 
     func reload() async {
@@ -81,5 +104,11 @@ final class SettingsModel: ObservableObject {
             await manager.resetToDefaults()
             await loadFromManager()
         }
+    }
+
+    /// Authoritative value from the persisted store (used at launch, before
+    /// the mirrored @Published copy is guaranteed to have loaded).
+    func launchBehaviorFromStore() async -> LaunchBehavior {
+        await manager.launchBehavior
     }
 }

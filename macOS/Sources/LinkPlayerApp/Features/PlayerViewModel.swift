@@ -72,18 +72,12 @@ final class PlayerViewModel: ObservableObject {
 
     /// Subscribes this view model to coordinator phase transitions and starts
     /// playback according to launch settings. Called from AppContainer.init.
-    func startObservingPhaseChanges(applyLaunchBehavior: Bool = false,
-                                     lastHistoryURL: String? = nil) async {
+    func startObservingPhaseChanges() async {
         await coordinator.setPhasePublisher { [weak self] newPhase in
             Task { @MainActor in self?.phase = newPhase }
         }
         let stored = await settings.volume
         volume = Double(stored)
         await coordinator.setVolume(stored)
-
-        if applyLaunchBehavior, let last = lastHistoryURL {
-            urlText = last
-            open(rawText: last)
-        }
     }
 }
